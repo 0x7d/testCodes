@@ -10,7 +10,6 @@ extern "C" {
 #define WIDTH 640
 #define HEIGHT 480
 #define SRC_YUYV "capture.yuy2"
-#define DEST_RGB "capture.rgb"
 #define DEST_JPG "capture.jpg"
 
 typedef unsigned char uint8_t;
@@ -46,16 +45,68 @@ int yuv422_to_rgb(void* pYUV, void* pRGB, int width, int height)
 			R2 = ((298*C2 + 409*E1 + 128)>>8>255 ? 255 : (298*C2 + 409*E1 + 128)>>8);
 			G2 = ((298*C2 - 100*D1 - 208*E1 + 128)>>8>255 ? 255 : (298*C2 - 100*D1 - 208*E1 + 128)>>8);
 			B2 = ((298*C2 + 516*D1 +128)>>8>255 ? 255 : (298*C2 + 516*D1 +128)>>8);
-			*(pRGBData+(height-i-1)*width*3+j*6+2) = R1<0 ? 0 : R1;
-			*(pRGBData+(height-i-1)*width*3+j*6+1) = G1<0 ? 0 : G1;
-			*(pRGBData+(height-i-1)*width*3+j*6) = B1<0 ? 0 : B1;
-			*(pRGBData+(height-i-1)*width*3+j*6+5) = R2<0 ? 0 : R2;
-			*(pRGBData+(height-i-1)*width*3+j*6+4) = G2<0 ? 0 : G2;
-			*(pRGBData+(height-i-1)*width*3+j*6+3) = B2<0 ? 0 : B2;
+			*pRGBData++ = B1<0 ? 0 : B1;
+			*pRGBData++ = G1<0 ? 0 : G1;
+			*pRGBData++ = R1<0 ? 0 : R1;
+			*pRGBData++ = B2<0 ? 0 : B2;
+			*pRGBData++ = G2<0 ? 0 : G2;
+			*pRGBData++ = R2<0 ? 0 : R2;
 		}
 	}
 
 	return 0;
+}
+
+int yuv2_to_rgb(void* pYUV, void* pRGB, int width, int height)
+{
+	if (NULL == pYUV || NULL == pRGB)
+	{
+		return -1;
+	}
+		uint8_t* pSrc = (uint8_t *)pYUV;
+		uint8_t* pDest = (uint8_t *)pRGB;
+
+		for(int index = 0;index < width * height ; index += 4)
+		{
+			//Y0 U0 Y1 V0
+			uint8_t Y0 = *pSrc;
+			uint8_t U = *(++pSrc);
+			uint8_t Y1 = *(++pSrc);
+			uint8_t V = *(++pSrc);
+			++pSrc;
+
+			uint8_t R,G,B;
+
+			R = (Y0 + 1.14f*V);
+			G=(Y0 - 0.39f*U-0.58f*V);  
+			B=(Y0 +2.03f*U);
+			if(R<0) R =0;
+			if(R>255) R=255;
+			if(G<0) G =0;
+			if(G>255) G=255;
+			if(B<0) B =0;
+			if(B>255) B=255;
+
+			*(pDest) =    (uint8_t)R;         
+			*(++pDest) =  (uint8_t)G;
+			*(++pDest) =  (uint8_t)B;
+			++pDest;
+
+			R = (Y1 + 1.14f*V);
+			G=(Y1 - 0.39f*U-0.58f*V);  
+			B=(Y1 +2.03f*U)   ;
+			if(R<0) R =0;
+			if(R>255) R=255;
+			if(G<0) G =0;
+			if(G>255) G=255;
+			if(B<0) B =0;
+			if(B>255) B=255;
+
+			*(pDest) =  (uint8_t)R;         
+			*(++pDest) =  (uint8_t)G;
+			*(++pDest) =  (uint8_t)B;
+			++pDest;
+		}
 }
 
 int rgb24_to_jpeg(uint8_t *rgb24data, int width, int height)
